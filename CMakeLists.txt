@@ -34,6 +34,11 @@ endif()
 if(WIN32)
 	add_definitions(-DWIN32 -D_WIN32)
 
+	if(MSVC)
+		# Keep runtime linkage consistent with x86-windows-static dependencies (vcpkg/Bullet).
+		set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	endif()
+
 	set(CMAKE_C_FLAGS "/nologo /EHsc /MT")
 	set(CMAKE_CXX_FLAGS "/nologo /EHsc /MT")
 
