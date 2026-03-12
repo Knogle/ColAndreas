@@ -1,5 +1,6 @@
 #include "Natives.h"
 #include "DynamicWorld.h"
+#include <fstream>
 #include <renderware.h>
 
 // Maximum number of raycasts
@@ -311,7 +312,7 @@ cell AMX_NATIVE_CALL ColAndreasNatives::CA_LoadFromDff(AMX *amx, cell *params)
 	std::string dffModelName = std::string("models/") + _dffModelName;
 
 	rw::Clump dffData;
-	ifstream file(dffModelName, ios::binary);
+	std::ifstream file(dffModelName, std::ios::binary);
 	if (file.fail()) 
 	{
 		logprintf("ERROR: CA_LoadFromDff: File %s not found in models directory.", _dffModelName);
