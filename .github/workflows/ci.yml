@@ -52,6 +52,7 @@ jobs:
             -DCMAKE_CXX_FLAGS="-m32" \
             -DCMAKE_SHARED_LINKER_FLAGS="-m32" \
             -DBUILD_SHARED_LIBS=ON \
+            -DINSTALL_LIBS=ON \
             -DBUILD_BULLET2_DEMOS=OFF \
             -DBUILD_CPU_DEMOS=OFF \
             -DBUILD_EXTRAS=OFF \
