@@ -18,13 +18,25 @@ jobs:
       matrix:
         include:
           - id: linux
-            name: Linux (x86)
+            name: Linux (x86, shared Bullet)
             os: ubuntu-24.04
+            bullet_shared_libs: "ON"
+            expected_component: ColAndreas.so
             release_glob: dist/ColAndreas-linux.tar.gz
+            release_archive: ColAndreas-linux.tar.gz
+          - id: linux-static
+            name: Linux (x86, static Bullet)
+            os: ubuntu-24.04
+            bullet_shared_libs: "OFF"
+            expected_component: ColAndreas_static.so
+            release_glob: dist/ColAndreas-linux-static.tar.gz
+            release_archive: ColAndreas-linux-static.tar.gz
           - id: windows
             name: Windows (Win32)
             os: windows-2022
+            expected_component: ColAndreas.dll
             release_glob: dist/ColAndreas-windows.zip
+            release_archive: ColAndreas-windows.zip
 
     steps:
       - name: Checkout
@@ -51,7 +63,7 @@ jobs:
             -DCMAKE_C_FLAGS="-m32" \
             -DCMAKE_CXX_FLAGS="-m32" \
             -DCMAKE_SHARED_LINKER_FLAGS="-m32" \
-            -DBUILD_SHARED_LIBS=ON \
+            -DBUILD_SHARED_LIBS="${{ matrix.bullet_shared_libs }}" \
             -DINSTALL_LIBS=ON \
             -DBUILD_BULLET2_DEMOS=OFF \
             -DBUILD_CPU_DEMOS=OFF \
@@ -67,12 +79,20 @@ jobs:
           fi
           echo "BULLET_CONFIG_DIR=${bullet_config_dir}" >> "${GITHUB_ENV}"
 
-          bullet_collision_so="$(find "${GITHUB_WORKSPACE}/deps/bullet3-install" -type f -name 'libBulletCollision.so*' | head -n 1)"
-          if [[ -z "${bullet_collision_so}" ]]; then
-            echo "Could not locate libBulletCollision shared library in deps/bullet3-install"
-            exit 1
+          if [[ "${{ matrix.bullet_shared_libs }}" == "ON" ]]; then
+            bullet_collision_so="$(find "${GITHUB_WORKSPACE}/deps/bullet3-install" -type f -name 'libBulletCollision.so*' | head -n 1)"
+            if [[ -z "${bullet_collision_so}" ]]; then
+              echo "Could not locate libBulletCollision shared library in deps/bullet3-install"
+              exit 1
+            fi
+            file "${bullet_collision_so}" | grep -q 'ELF 32-bit'
+          else
+            bullet_collision_a="$(find "${GITHUB_WORKSPACE}/deps/bullet3-install" -type f -name 'libBulletCollision.a' | head -n 1)"
+            if [[ -z "${bullet_collision_a}" ]]; then
+              echo "Could not locate libBulletCollision static library in deps/bullet3-install"
+              exit 1
+            fi
           fi
-          file "${bullet_collision_so}" | grep -q 'ELF 32-bit'
 
       - name: Install Bullet for Windows (x86 static)
         if: runner.os == 'Windows'
@@ -132,9 +152,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          component_path="$(find build -maxdepth 2 -type f \( -name 'ColAndreas.so' -o -name 'ColAndreas_static.so' \) | head -n 1)"
+          expected_component="${{ matrix.expected_component }}"
+          component_path="$(find build -maxdepth 2 -type f -name "${expected_component}" | head -n 1)"
           if [[ -z "${component_path}" ]]; then
-            echo "Could not find ColAndreas shared library in build output."
+            echo "Could not find expected component (${expected_component}) in build output."
             exit 1
           fi
           if ! file "${component_path}" | grep -q 'ELF 32-bit'; then
@@ -168,10 +189,38 @@ jobs:
 
       - name: Stage Linux build artifacts
         if: runner.os == 'Linux'
+        shell: bash
         run: |
-          mkdir -p dist/linux/components dist/linux/pawno/include
-          cp "${{ steps.locate_linux_component.outputs.component_path }}" dist/linux/components/
-          cp Server/include/colandreas.inc dist/linux/pawno/include/colandreas.inc
+          set -euo pipefail
+          component_output_dir="dist/${{ matrix.id }}/components"
+          component_path="${{ steps.locate_linux_component.outputs.component_path }}"
+
+          mkdir -p "${component_output_dir}" "dist/${{ matrix.id }}/pawno/include"
+          cp "${component_path}" "${component_output_dir}/"
+          cp Server/include/colandreas.inc "dist/${{ matrix.id }}/pawno/include/colandreas.inc"
+
+          if [[ "${{ matrix.bullet_shared_libs }}" == "ON" ]]; then
+            mapfile -t bullet_lib_paths < <(
+              ldd "${component_path}" \
+                | awk '/=>/ { print $3 }' \
+                | grep -E '/lib(Bullet|LinearMath).*\.so' \
+                | sort -u
+            )
+
+            if [[ "${#bullet_lib_paths[@]}" -eq 0 ]]; then
+              echo "Could not resolve Bullet shared library dependencies via ldd."
+              ldd "${component_path}" || true
+              exit 1
+            fi
+
+            for lib_path in "${bullet_lib_paths[@]}"; do
+              if [[ ! -f "${lib_path}" ]]; then
+                echo "Resolved Bullet shared library does not exist: ${lib_path}"
+                exit 1
+              fi
+              cp "${lib_path}" "${component_output_dir}/"
+            done
+          fi
 
       - name: Stage Windows build artifacts
         if: runner.os == 'Windows'
@@ -194,16 +243,26 @@ jobs:
       - name: Package Linux release archive
         if: github.event_name == 'release' && runner.os == 'Linux'
         run: |
+          rm -rf release/ColAndreas
           mkdir -p release/ColAndreas
-          cp -r dist/linux/components release/ColAndreas/components
-          cp -r dist/linux/pawno release/ColAndreas/pawno
-          tar -C release -czf dist/ColAndreas-linux.tar.gz ColAndreas
+          cp -r dist/${{ matrix.id }}/components release/ColAndreas/components
+          cp -r dist/${{ matrix.id }}/pawno release/ColAndreas/pawno
+          tar -C release -czf "dist/${{ matrix.release_archive }}" ColAndreas
 
       - name: Verify Linux package contents
         if: github.event_name == 'release' && runner.os == 'Linux'
+        shell: bash
         run: |
-          tar -tzf dist/ColAndreas-linux.tar.gz | grep -E '^ColAndreas/components/ColAndreas(_static)?\.so$'
-          tar -tzf dist/ColAndreas-linux.tar.gz | grep -E '^ColAndreas/pawno/include/colandreas\.inc$'
+          set -euo pipefail
+          package_path="dist/${{ matrix.release_archive }}"
+          tar -tzf "${package_path}" | grep -Fx "ColAndreas/components/${{ matrix.expected_component }}"
+          tar -tzf "${package_path}" | grep -Fx 'ColAndreas/pawno/include/colandreas.inc'
+
+          if [[ "${{ matrix.bullet_shared_libs }}" == "ON" ]]; then
+            tar -tzf "${package_path}" | grep -E '^ColAndreas/components/libBulletCollision\.so(\..+)?$'
+            tar -tzf "${package_path}" | grep -E '^ColAndreas/components/libBulletDynamics\.so(\..+)?$'
+            tar -tzf "${package_path}" | grep -E '^ColAndreas/components/libLinearMath\.so(\..+)?$'
+          fi
 
       - name: Package Windows release archive
         if: github.event_name == 'release' && runner.os == 'Windows'

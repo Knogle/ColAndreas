@@ -85,6 +85,11 @@ target_link_libraries(ColAndreas PRIVATE
 
 if(UNIX AND NOT APPLE)
 	target_link_libraries(ColAndreas PRIVATE rt)
+	# Resolve bundled Bullet shared libraries from the component directory.
+	set_target_properties(ColAndreas PROPERTIES
+		BUILD_RPATH "\$ORIGIN"
+		INSTALL_RPATH "\$ORIGIN"
+	)
 endif()
 
 if(NOT WIN32 AND BULLET_COLLISION_LIBRARY MATCHES ".a$")

@@ -13,17 +13,18 @@ Current maintainer: **[Knogle](https://github.com/Knogle)**
 
 ## Highlights
 
-- open.mp component builds for Linux and Windows (`ColAndreas.so` / `ColAndreas.dll`).
+- open.mp component builds for Linux (shared + static) and Windows (`ColAndreas.so`, `ColAndreas_static.so`, `ColAndreas.dll`).
 - Native API for ray casts, contact tests, object collision management and utility conversions.
 - Include file and component shipped together for straightforward deployment.
-- CI with 32-bit Linux and Windows builds plus native API exposure verification.
+- CI with 32-bit Linux (shared + static) and Windows builds plus native API exposure verification.
 
 ## Download and Installation
 
 1. Download the latest archive from the [Releases page](https://github.com/Knogle/ColAndreas/releases).
 2. Extract the release into your open.mp server root while keeping folder structure.
 3. Ensure at least these files are placed correctly:
-   - `components/ColAndreas.so` (Linux)
+   - `components/ColAndreas.so` (Linux shared package includes required `libBullet*.so` / `libLinearMath.so` files)
+   - `components/ColAndreas_static.so` (Linux static package alternative)
    - `components/ColAndreas.dll` (Windows)
    - `pawno/include/colandreas.inc`
 4. Place the collision database file as `scriptfiles/ColAndreas/ColAndreas.cadb`.
@@ -31,12 +32,13 @@ Current maintainer: **[Knogle](https://github.com/Knogle)**
 
 ## Linux Runtime Note
 
-If you get a missing Bullet shared library error at runtime, your host is missing required Bullet runtime libraries.
+If you get a missing Bullet shared library error at runtime, use one of these options:
 
 You can either:
 
-- Use a static build (`ColAndreas_static.so`) when available, or
-- Install Bullet runtime packages from your distribution.
+- Use the shared Linux release package (`ColAndreas-linux.tar.gz`), which now includes the required Bullet `.so` files next to `ColAndreas.so`.
+- Use the static Linux release package (`ColAndreas-linux-static.tar.gz`) / `ColAndreas_static.so`.
+- Install Bullet runtime packages from your distribution (mainly needed for custom/manual deployments).
 
 ## Build from Source
 
@@ -90,13 +92,13 @@ Triggers:
 
 CI checks:
 
-- Configure and build ColAndreas as 32-bit on Linux (Ubuntu 24.04) and Windows (Win32).
+- Configure and build ColAndreas as 32-bit on Linux (shared and static variants) and Windows (Win32).
 - Validate that natives declared in `Server/include/colandreas.inc` match natives registered in `src/ColAndreas.cpp`.
 
 Release behavior:
 
-- Build Linux and Windows artifacts.
-- Package `ColAndreas-linux.tar.gz` and `ColAndreas-windows.zip`.
+- Build Linux (shared + static) and Windows artifacts.
+- Package `ColAndreas-linux.tar.gz` (shared build + bundled Bullet `.so` files), `ColAndreas-linux-static.tar.gz`, and `ColAndreas-windows.zip`.
 - Upload release package asset automatically to the GitHub release.
 
 ## Compatibility
