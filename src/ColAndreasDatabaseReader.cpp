@@ -18,9 +18,9 @@ bool ReadColandreasDatabaseFile(std::string FileLocation)
 {
 	bool returnValue = false;
 
-	ifstream ColAndreasBinaryfile;
+	std::ifstream ColAndreasBinaryfile;
 
-	ColAndreasBinaryfile.open(FileLocation, ios::in | ios::binary);
+	ColAndreasBinaryfile.open(FileLocation, std::ios::in | std::ios::binary);
 
 	if (ColAndreasBinaryfile.is_open()) {
 		ColAndreasBinaryfile.seekg(0, ColAndreasBinaryfile.end);

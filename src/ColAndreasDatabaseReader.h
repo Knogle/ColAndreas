@@ -9,8 +9,6 @@
 #include <vector>
 #include <map>
 
-using namespace std;
-
 /*
 Binary file format
 
@@ -119,4 +117,3 @@ extern uint32_t IPLCount;
 extern std::map<int32_t, uint16_t> ModelRef;
 
 #endif 
-

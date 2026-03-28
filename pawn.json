@@ -1,22 +1,23 @@
 {
-    "user": "Pottus",
+    "user": "Knogle",
     "repo": "ColAndreas",
-    "include_path": "Server/include",
     "resources": [
         {
-            "name": "^ColAndreas_static.so$",
+            "name": "^ColAndreas-linux-static\\.tar\\.gz$",
             "platform": "linux",
-            "archive": false,
-            "plugins": ["colandreas_static.so"]
+            "archive": true,
+            "includes": ["ColAndreas/pawno/include"],
+            "plugins": ["ColAndreas/components/ColAndreas_static.so"]
         },
         {
-            "name": "^ColAndreas.dll$",
+            "name": "^ColAndreas-windows\\.zip$",
             "platform": "windows",
-            "archive": false,
-            "plugins": ["ColAndreas.dll"]
+            "archive": true,
+            "includes": ["ColAndreas/pawno/include"],
+            "plugins": ["ColAndreas/components/ColAndreas.dll"]
         }
     ],
     "runtime": {
-        "plugins": ["Pottus/ColAndreas"]
+        "plugins": ["Knogle/ColAndreas"]
     }
 }
