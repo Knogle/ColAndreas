@@ -7,9 +7,11 @@
 
 ColAndreas is an open.mp component that provides server-side collision and world queries for San Andreas using the Bullet Physics library.
 
-Current version: **v1.5.0**
+Current version: **v1.6.0**
 
 Current maintainer: **[Knogle](https://github.com/Knogle)**
+
+Versioning note: **v1.6.0** is the first mainline release on `master` for the open.mp component line. The old SA-MP plugin remains part of the project's legacy history.
 
 ## Highlights
 
